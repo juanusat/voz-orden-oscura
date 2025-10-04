@@ -1,0 +1,9 @@
+Flask>=2.0
+Flask-SQLAlchemy>=2.5
+SQLAlchemy
+python-docx
+ffmpeg-python
+faster-whisper
+webrtcvad
+python-magic
+gunicorn
