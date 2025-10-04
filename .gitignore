@@ -1,0 +1,5 @@
+notas-privadas/
+fronted/node_modules/
+backend/.venv/
+.env
+backend/uploads/
