@@ -12,7 +12,7 @@ class Upload(db.Model):
     stored_at = Column(Text, nullable=False)
     original_path = Column(Text)
     is_video = Column(Boolean, nullable=False, default=False)
-    metadata = Column(JSON)
+    metadata_json = Column("metadata", JSON)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
