@@ -1,0 +1,95 @@
+/* src/styles/ListPage.css */
+
+.list-container {
+    width: 1800px;
+    height: 800px ;
+    margin: 40px auto;
+    padding: 20px;
+}
+
+.list-container h1 {
+    font-size: 2.2em;
+    font-weight: 500;
+    margin-bottom: 30px;
+    color: #333;
+}
+
+.files-table-wrapper {
+    /* Contenedor que simula la sombra y el fondo del listado */
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.files-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+/* Estilo para la fila de encabezado que se ve más gruesa */
+.table-header-row {
+    background-color: #f0f0f0; /* Fondo gris claro */
+    border-bottom: 2px solid #ddd;
+}
+
+.files-table th {
+    padding: 15px 10px;
+    text-align: left;
+    font-weight: bold;
+    color: #555;
+    font-size: 0.9em;
+    text-transform: uppercase;
+}
+
+/* Estilos de las columnas para replicar el espaciado de la imagen */
+.column-hash {
+    width: 5%; /* Columna corta para el número */
+    padding-left: 20px;
+}
+
+.column-name {
+    width: 60%; 
+}
+
+.column-date {
+    width: 15%; 
+    font-size: 0.9em;
+    color: #777;
+}
+
+.column-actions {
+    width: 20%;
+    text-align: right; /* Mueve el encabezado "Acciones" a la derecha */
+    padding-right: 20px;
+}
+
+/* Estilo para las filas de datos */
+.table-data-row {
+    border-bottom: 1px solid #eee;
+    transition: background-color 0.1s;
+}
+
+.table-data-row:hover {
+    background-color: #f9f9f9;
+}
+
+.files-table td {
+    padding: 15px 10px;
+    font-size: 1em;
+}
+
+/* El botón de Descargar */
+.btn-download {
+    background-color: #4a54a0; /* Azul/Púrpura */
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.btn-download:hover {
+    background-color: #3b4282;
+}
