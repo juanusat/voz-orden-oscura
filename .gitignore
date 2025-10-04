@@ -3,3 +3,5 @@ fronted/node_modules/
 backend/.venv/
 .env
 backend/uploads/
+*.pyc
+__pycache__/
