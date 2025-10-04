@@ -5,3 +5,4 @@ backend/.venv/
 backend/uploads/
 *.pyc
 __pycache__/
+data.db
