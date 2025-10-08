@@ -1,4 +1,4 @@
-from flask import Blueprint, request, current_app, jsonify
+from flask import Blueprint, request, current_app, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
 from pathlib import Path
 import os
@@ -33,3 +33,16 @@ def create_upload():
     db.session.add(upload)
     db.session.commit()
     return jsonify({"id":upload.id,"filename":upload.filename,"content_type":upload.content_type,"size":upload.size_bytes,"stored_at":upload.stored_at})
+
+
+@uploads_bp.route("/download/<path:filename>", methods=["GET"])
+def download_upload(filename):
+    folder = current_app.config.get("UPLOAD_FOLDER")
+    if not folder:
+        return jsonify({"error": "upload folder not configured"}), 500
+    # Ensure file exists inside upload folder
+    safe_name = Path(filename).name
+    file_path = Path(folder) / safe_name
+    if not file_path.exists():
+        return jsonify({"error": "not found"}), 404
+    return send_from_directory(folder, safe_name, as_attachment=True)

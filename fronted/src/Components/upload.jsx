@@ -7,6 +7,8 @@ const UploadPage = () => {
     // Estado para manejar el archivo seleccionado y el texto de resultado
     const [selectedFile, setSelectedFile] = useState(null);
     const [fileName, setFileName] = useState('Ningún archivo seleccionado');
+    const [isVideo, setIsVideo] = useState(false);
+    const [detectedMime, setDetectedMime] = useState(null);
     const [transcript, setTranscript] = useState('En esta sección se mostrará el texto transcrito.');
     const fileInputRef = useRef(null); // Referencia para el input de archivo oculto
 
@@ -17,17 +19,28 @@ const UploadPage = () => {
         if (file) {
             setSelectedFile(file);
             setFileName(file.name);
+            const mime = file.type || null;
+            setDetectedMime(mime);
+            setIsVideo(mime ? mime.startsWith('video/') : false);
         }
     };
 
     const handleDrop = (event) => {
         event.preventDefault();
         const file = event.dataTransfer.files[0];
-        if (file && file.type.startsWith('audio/')) { // Validación simple de tipo de archivo
+        if (!file) {
+            alert("No se detectó archivo en el arrastre.");
+            return;
+        }
+        // Accept both audio and video
+        const mime = file.type || '';
+        if (mime.startsWith('audio/') || mime.startsWith('video/')) {
             setSelectedFile(file);
             setFileName(file.name);
+            setDetectedMime(mime);
+            setIsVideo(mime.startsWith('video/'));
         } else {
-            alert("Por favor, arrastre un archivo de audio válido.");
+            alert("Por favor, arrastre un archivo de audio o video válido.");
         }
     };
 
@@ -37,15 +50,45 @@ const UploadPage = () => {
 
     // --- Lógica de Botones ---
 
-    const handleRealizarTranscripcion = () => {
+    const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5702/api';
+
+    const handleRealizarTranscripcion = async () => {
         if (!selectedFile) {
             alert("Por favor, selecciona un archivo de audio primero.");
             return;
         }
-        
-        // TODO: Aquí iría la lógica real para enviar el archivo 
-        // a un servidor (backend) que maneje la transcripción. 
-        setTranscript(`Iniciando transcripción de: ${fileName}...\n(La lógica de backend es necesaria para el procesamiento real)`);
+        setTranscript(`Iniciando transcripción de: ${fileName}...`);
+        try {
+            const form = new FormData();
+            form.append('file', selectedFile, selectedFile.name);
+            // inform backend if this is a video so it can extract audio
+            form.append('is_video', isVideo ? '1' : '0');
+            if (detectedMime) form.append('original_mime', detectedMime);
+
+            const upRes = await fetch(`${API_BASE}/uploads`, {
+                method: 'POST',
+                body: form,
+            });
+            if (!upRes.ok) throw new Error(`Upload failed: ${upRes.status}`);
+            const upJson = await upRes.json();
+            const uploadId = upJson.id;
+
+            // Request synchronous transcription (blocks until result)
+            const tRes = await fetch(`${API_BASE}/transcriptions`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ upload_id: uploadId }),
+            });
+            if (!tRes.ok) {
+                const err = await tRes.json().catch(()=> null);
+                throw new Error(`Transcription failed: ${tRes.status} ${err && err.error ? err.error : ''}`);
+            }
+            const tJson = await tRes.json();
+            setTranscript(tJson.text || JSON.stringify(tJson));
+        } catch (e) {
+            console.error(e);
+            setTranscript(`Error: ${e.message}`);
+        }
     };
 
     const handleClear = () => {
@@ -83,7 +126,7 @@ const UploadPage = () => {
                     {/* Input de archivo Oculto */}
                     <input 
                         type="file" 
-                        accept="audio/*" // Solo acepta archivos de audio
+                        accept="audio/*,video/*" // Acepta audio y video
                         onChange={handleFileChange} 
                         ref={fileInputRef}
                         style={{ display: 'none' }}
@@ -97,6 +140,7 @@ const UploadPage = () => {
                             Elegir desde el ordenador
                         </button>
                         <span className="file-name-display">{fileName}</span>
+                        {detectedMime ? <div style={{ fontSize: 12, color: '#666' }}>Tipo detectado: {detectedMime}{isVideo ? ' (video)' : ' (audio)'}</div> : null}
                     </div>
                 </div>
 
