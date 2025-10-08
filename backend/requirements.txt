@@ -8,3 +8,4 @@ webrtcvad
 python-magic
 gunicorn
 requests
+Flask-Cors

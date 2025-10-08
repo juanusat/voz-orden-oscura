@@ -1,11 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 // IMPORTANTE: Asegúrate de tener un archivo CSS para los estilos
 import './HomePage.css'; 
+import { useNavigate } from 'react-router-dom';
 
 const HomePage = () => {
     // Estado para el texto transcrito y el estado de grabación
     const [isRecording, setIsRecording] = useState(false);
     const [transcript, setTranscript] = useState('En esta sección se mostrará el texto transcrito.');
+    const [isTranscribing, setIsTranscribing] = useState(false);
+    const [savedTranscriptionId, setSavedTranscriptionId] = useState(null);
     const [timer, setTimer] = useState(0); // Para el cronómetro (segundos)
 
     // Función para formatear el tiempo (MM:SS)
@@ -32,18 +35,124 @@ const HomePage = () => {
 
 
     // --- Funciones de Botones ---
+    const navigate = useNavigate();
+    const mediaRecorderRef = useRef(null);
+    const mediaStreamRef = useRef(null);
+    const chunksRef = useRef([]);
 
-    const handleStartStop = () => {
-        setIsRecording(prev => !prev); // Alterna el estado
+    const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5702/api';
 
-        // TODO: Aquí irá la lógica de iniciar/detener la Web Speech API
+    const uploadAndTranscribe = async (blob, filename) => {
+        try {
+            const form = new FormData();
+            form.append('file', blob, filename);
+            const upRes = await fetch(`${API_BASE}/uploads`, { method: 'POST', body: form });
+            if (!upRes.ok) throw new Error(`Upload failed: ${upRes.status}`);
+            const upJson = await upRes.json();
+            const uploadId = upJson.id;
+            // Request transcription (try synchronous endpoint first)
+            const tRes = await fetch(`${API_BASE}/transcriptions`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ upload_id: uploadId }),
+            });
+            if (!tRes.ok) {
+                const err = await tRes.json().catch(()=>null);
+                throw new Error(`Transcription request failed: ${tRes.status} ${err && err.error ? err.error : ''}`);
+            }
+            const tJson = await tRes.json();
+
+            // If sync endpoint returned completed text, use it. Otherwise poll for completion.
+            const transcriptionId = tJson.id || tJson.task_id || null;
+            if (tJson.status === 'completed' && tJson.text) {
+                setTranscript(tJson.text);
+                // keep user on HomePage; record exists in backend and will appear in Listado
+                setSavedTranscriptionId(tJson.id || null);
+                setIsTranscribing(false);
+                setSavedTranscriptionId(tJson.id || null);
+                return;
+            }
+
+            if (!transcriptionId) {
+                throw new Error('No transcription id returned');
+            }
+
+            // Poll until status is completed (timeout 60s)
+            const poll = async () => {
+                const start = Date.now();
+                while (Date.now() - start < 60000) {
+                    try {
+                        const r = await fetch(`${API_BASE}/transcriptions/${encodeURIComponent(transcriptionId)}`);
+                        if (r.ok) {
+                            const j = await r.json();
+                            if (j.status === 'completed' && j.text) {
+                                return j;
+                            }
+                            if (j.status === 'failed') {
+                                throw new Error(j.error || 'transcription failed');
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('Polling error', e);
+                    }
+                    // wait 2s
+                    await new Promise(res => setTimeout(res, 2000));
+                }
+                throw new Error('Transcription timeout');
+            };
+
+            const final = await poll();
+            setTranscript(final.text || '');
+            setIsTranscribing(false);
+            setSavedTranscriptionId(final.id || transcriptionId || null);
+        } catch (e) {
+            console.error(e);
+            setTranscript(`Error: ${e.message}`);
+            setIsTranscribing(false);
+        }
+    };
+
+    const handleStartStop = async () => {
         if (isRecording) {
-            // Lógica para DETENER el reconocimiento
-        } else {
-            // Lógica para INICIAR el reconocimiento
-            // También reiniciamos el temporizador y el texto al iniciar
-            setTimer(0);
+            // Stop recording
+            try {
+                mediaRecorderRef.current && mediaRecorderRef.current.stop();
+            } catch (e) {
+                console.warn('Error stopping recorder', e);
+            }
+            setIsRecording(false);
+            return;
+        }
+
+        // Start recording
+        try {
             setTranscript('');
+            setTimer(0);
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaStreamRef.current = stream;
+            const options = {};
+            const mediaRecorder = new MediaRecorder(stream, options);
+            chunksRef.current = [];
+            mediaRecorder.ondataavailable = (e) => {
+                if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
+            };
+            mediaRecorder.onstop = async () => {
+                // assemble blob
+                const blob = new Blob(chunksRef.current, { type: chunksRef.current[0]?.type || 'audio/webm' });
+                const now = new Date();
+                const pad = (n) => String(n).padStart(2, '0');
+                const fname = `Grabación - ${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}.webm`;
+                // stop tracks
+                try { mediaStreamRef.current && mediaStreamRef.current.getTracks().forEach(t=>t.stop()); } catch(e){}
+                setIsTranscribing(true);
+                await uploadAndTranscribe(blob, fname);
+            };
+            mediaRecorder.start();
+            mediaRecorderRef.current = mediaRecorder;
+            setIsRecording(true);
+        } catch (e) {
+            console.error('Could not start recording', e);
+            alert('No se pudo iniciar la grabación: ' + (e.message || e));
         }
     };
 
@@ -72,13 +181,14 @@ const HomePage = () => {
                     <button 
                         className="btn btn-clear" 
                         onClick={handleClear}
-                        disabled={isRecording} // No se puede borrar mientras graba
+                        disabled={isRecording || isTranscribing} // No se puede borrar mientras graba o transcribe
                     >
                         Borrar
                     </button>
                     <button 
                         className={`btn btn-record ${isRecording ? 'recording' : ''}`}
                         onClick={handleStartStop}
+                        disabled={isTranscribing}
                     >
                         {isRecording ? 'Detener grabación' : 'Iniciar grabación'}
                     </button>
@@ -88,6 +198,7 @@ const HomePage = () => {
             <div className="right-panel">
                 <h3 className="result-title">Resultado:</h3>
                 <div className="result-box">
+                    {isTranscribing ? (<div><strong>Transcribiendo...</strong></div>) : null}
                     {transcript}
                 </div>
             </div>

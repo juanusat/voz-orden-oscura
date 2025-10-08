@@ -1,40 +1,84 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './list.css'; 
 
-// Datos de ejemplo para el listado de archivos
-const initialFiles = [
-    {
-        id: 1,
-        name: 'transcripcion_20241219_162644.docx',
-        date: '19/12/2024 16:26:44',
-        type: 'docx',
-    },
-    {
-        id: 2,
-        name: 'audio_reunion_cliente_0501.mp3',
-        date: '05/01/2025 10:30:00',
-        type: 'mp3',
-    },
-    {
-        id: 3,
-        name: 'transcripcion_podcast_epi1.txt',
-        date: '01/01/2025 12:00:00',
-        type: 'txt',
-    },
-];
-
 const ListPage = () => {
-    // En una aplicación real, estos datos vendrían de una API (fetch)
-    const [files, setFiles] = useState(initialFiles);
+    const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5702/api';
+    const [files, setFiles] = useState([]);
 
-    const handleDownload = (fileName) => {
-        // En un entorno de producción, aquí se realizaría la llamada a la API
-        // para obtener el archivo o el enlace de descarga.
-        alert(`Iniciando descarga de: ${fileName}`);
-        
-        // Simulación de descarga: crea un enlace temporal y lo pulsa
-        // const downloadUrl = `/api/download/${fileName}`; // URL real del archivo
-        // window.open(downloadUrl, '_blank');
+    useEffect(() => {
+        let mounted = true;
+        const fetchList = async () => {
+            try {
+                const res = await fetch(`${API_BASE}/transcriptions?status=completed&limit=100`);
+                if (!res.ok) throw new Error(`Failed to fetch: ${res.status}`);
+                const json = await res.json();
+                // json is an array of {id, filename, status, duration_seconds, created_at}
+                if (mounted) setFiles(json.map(item => ({
+                    id: item.id,
+                    name: item.filename || item.id,
+                    date: item.created_at || '',
+                    raw: item,
+                })));
+            } catch (e) {
+                console.error(e);
+            }
+        };
+        fetchList();
+        return () => { mounted = false };
+    }, []);
+
+    const handleDownload = (file) => {
+        // file may include raw.word_doc_path with a server path; build download URL
+        const raw = file.raw || {};
+        let downloadUrl = null;
+        if (raw.word_doc_path) {
+            // word_doc_path may be a full path like "generated/docs/<id>.docx"
+            const parts = raw.word_doc_path.split(/[/\\]/g);
+            const filename = parts[parts.length - 1];
+            downloadUrl = `${API_BASE}/transcriptions/download/${encodeURIComponent(filename)}`;
+        } else {
+            // no docx path known; assume this is an upload (audio) and use uploads/download
+            const safeName = file.name;
+            downloadUrl = `${API_BASE.replace(/\/transcriptions$/, '')}/uploads/download/${encodeURIComponent(safeName)}`;
+        }
+        window.open(downloadUrl, '_blank');
+    };
+
+    const generateAndDownload = async (file) => {
+        const raw = file.raw || {};
+        const id = raw.id;
+        if (!id) {
+            alert('No transcription id available');
+            return;
+        }
+        try {
+            const res = await fetch(`${API_BASE}/transcriptions/${encodeURIComponent(id)}/docx`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({}),
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(()=>null);
+                throw new Error(err && err.error ? err.error : `status ${res.status}`);
+            }
+            const json = await res.json();
+            // expected { docx_url: outpath }
+            let url = json && json.docx_url;
+            if (url) {
+                // If docx_url is a path like generated/docs/<file>, construct download endpoint
+                const parts = url.split(/[/\\]/g);
+                const filename = parts[parts.length - 1];
+                const downloadUrl = `${API_BASE}/transcriptions/download/${encodeURIComponent(filename)}`;
+                window.open(downloadUrl, '_blank');
+            } else {
+                // fallback: try to download by id
+                const downloadUrl = `${API_BASE}/transcriptions/download/${encodeURIComponent(id)}.docx`;
+                window.open(downloadUrl, '_blank');
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Error generating docx: ' + (e.message || e));
+        }
     };
 
     return (
@@ -59,8 +103,8 @@ const ListPage = () => {
                                 <td className="column-date">{file.date}</td>
                                 <td className="column-actions">
                                     <button 
-                                        className="btn-download" 
-                                        onClick={() => handleDownload(file.name)}
+                                        className="btn-gendoc" 
+                                        onClick={() => generateAndDownload(file)}
                                     >
                                         Descargar
                                     </button>
