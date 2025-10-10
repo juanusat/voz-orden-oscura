@@ -9,15 +9,17 @@
 
 .list-container h1 {
     font-size: 2.2em;
-    font-weight: 500;
     margin-bottom: 30px;
     color: #333;
+    font-weight: 700;
+    letter-spacing: 1px;
+    line-height: 1;
 }
 
 .files-table-wrapper {
     /* Contenedor que simula la sombra y el fondo del listado */
     background-color: #ffffff;
-    border-radius: 8px;
+    border-radius: 8px ;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
@@ -45,6 +47,7 @@
 .column-hash {
     width: 5%; /* Columna corta para el número */
     padding-left: 20px;
+    border-right: 1px solid #cccccc;
 }
 
 .column-name {
@@ -65,7 +68,7 @@
 
 /* Estilo para las filas de datos */
 .table-data-row {
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid #cccccc;
     transition: background-color 0.1s;
 }
 

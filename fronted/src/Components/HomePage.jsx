@@ -165,7 +165,7 @@ const HomePage = () => {
 
     return (
         <div className="speech-container">
-            <div className="left-panel">
+            <div className="left-panel-home">
                 <h1 className="title-text">¡Hola! Soy tu asistente virtual de reconocimiento de voz</h1>
                 <p className="instruction-text">
                     Haga clic en el botón '{isRecording ? 'Detener grabación' : 'Iniciar grabación'}' para empezar a grabar el audio. 
@@ -179,25 +179,25 @@ const HomePage = () => {
 
                 <div className="controls">
                     <button 
-                        className="btn btn-clear" 
+                        className="btn-home btn-clear" 
                         onClick={handleClear}
                         disabled={isRecording || isTranscribing} // No se puede borrar mientras graba o transcribe
                     >
                         Borrar
                     </button>
                     <button 
-                        className={`btn btn-record ${isRecording ? 'recording' : ''}`}
+                        className={`btn-home btn-record ${isRecording ? 'recording' : ''}`}
                         onClick={handleStartStop}
                         disabled={isTranscribing}
                     >
-                        {isRecording ? 'Detener grabación' : 'Iniciar grabación'}
+                        {isRecording ? 'Detener' : 'Grabar'}
                     </button>
                 </div>
             </div>
 
-            <div className="right-panel">
+            <div className="right-panel-home">
                 <h3 className="result-title">Resultado:</h3>
-                <div className="result-box">
+                <div className="result-box-home">
                     {isTranscribing ? (<div><strong>Transcribiendo...</strong></div>) : null}
                     {transcript}
                 </div>

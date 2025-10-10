@@ -10,27 +10,25 @@ const Header = () => {
         <header className="app-header">
             <nav>
                 <div className='logo-container'>
-                    <a href="" target="_blank">
-                        <img src={OrdenOscura} className="logo" alt="Vite logo" />
-                    </a>
+                    La Orden Oscura
                 </div>
                 <div className='links-container'>
                     <div className="item-link">
                         <Link to="/">
-                        <KeyboardVoiceIcon />Inicio
+                            <KeyboardVoiceIcon />Inicio
                         </Link>
                     </div>
                     <div className="item-link">
-                        
+
                         <Link to="/upload">
-                        <DriveFolderUploadIcon />Subir</Link>
+                            <DriveFolderUploadIcon />Subir</Link>
                     </div>
                     <div className="item-link">
                         <Link to="/list">
-                        <ArticleIcon />
-                        Listado</Link>
+                            <ArticleIcon />
+                            Listado</Link>
                     </div>
-                    
+
                 </div>
 
             </nav>
