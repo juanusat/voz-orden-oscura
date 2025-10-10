@@ -1,86 +1,201 @@
-/* src/styles/AudioConverter.css (Añade o modifica según tu estructura) */
-
-/* Contenedor principal similar al de HomePage */
 .converter-container {
-    display: flex;
-    width: 1800px;
-    height: 800px ;
+    max-width: 1100px;
     margin: 40px auto;
     padding: 20px;
-    min-height: 500px;
-    /* ... otros estilos de layout ... */
+    display: flex;
+    gap: 40px; 
+    align-items: flex-start;
 }
 
-/* Zona de Drag and Drop */
+.left-panel-upload, .right-panel-upload {
+    background-color: white;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+}
+
+.left-panel-upload {
+    flex: 1;
+    min-width: 450px;
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
+.right-panel-upload {
+    flex: 1.5; 
+    min-height: 450px;
+}
+
+.title-text {
+    color: var(--primary-color);
+    font-size: 2rem;
+    font-weight: 300;
+    margin-bottom: 10px;
+}
+
+.instruction-text {
+    color: #7f8c8d;
+    font-size: 1rem;
+    line-height: 1.6;
+}
+
+.result-title {
+    color: var(--secondary-color);
+    font-size: 1.4rem;
+    margin-bottom: 15px;
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 5px;
+}
+
+.result-box-upload {
+    min-height: 350px;
+    padding: 20px;
+    border: 1px solid black;
+    border-radius: 10px;
+    background-color: var(--bg-light);
+    white-space: pre-wrap;
+    overflow-y: auto;
+    font-size: 1.05rem;
+    line-height: 1.7;
+}
+
 .drag-drop-area {
-    border: 2px dashed #a0a0a0;
-    border-radius: 8px;
-    padding: 30px 20px;
+    border: 3px dashed var(--border-color);
+    border-radius: 10px;
+    padding: 40px 20px;
     text-align: center;
-    margin-bottom: 40px;
-    background-color: #f0f0f0;
+    transition: border-color 0.3s ease, background-color 0.3s ease;
+    background-color: #f0f4f7;
+    cursor: pointer;
+}
+
+.drag-drop-area:hover {
+    border-color: var(--primary-color);
+    background-color: #b4d5ee;
+}
+
+.drag-drop-area p {
+    color: #6c7a89;
+    font-size: 1.1rem;
+    margin-bottom: 15px;
 }
 
 .file-selector-row {
     margin-top: 15px;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    gap: 15px;
-}
-
-.btn-select-file {
-    background-color: #e0e0e0;
-    border: 1px solid #ccc;
-    padding: 8px 15px;
-    cursor: pointer;
-    border-radius: 4px;
+    gap: 8px;
 }
 
 .file-name-display {
-    font-style: italic;
-    color: #666;
+    display: block;
+    margin-top: 5px;
+    font-weight: 600;
+    color: var(--secondary-color);
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-/* Estilos de Control (Botones Circulares) */
+.btn-select-file {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 25px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.btn-select-file:hover {
+    background-color: #4a5967;
+}
+
 .controls {
     display: flex;
-    justify-content: space-around; /* Distribuye los 3 botones */
-    margin-top: 50px;
+    justify-content: space-between;
+    gap: 15px;
+    padding-top: 20px;
 }
 
-/* Estilos base para todos los botones circulares (reutiliza los de HomePage) */
-.btn {
-    width: 120px; /* Tamaño ligeramente más pequeño para 3 botones */
-    height: 120px;
-    border-radius: 50%;
-    border: none;
-    color: white;
-    font-size: 0.9em;
-    font-weight: bold;
+.bton {
+    padding: 12px 20px;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 8px;
     cursor: pointer;
-    transition: background-color 0.2s;
-    /* Alineación de texto central si es de varias líneas */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-}
-
-.btn-clear {
-    background-color: #9e9e9e; /* Gris */
-}
-
-.btn-transcribe {
-    background-color: #4a54a0; /* Púrpura/Azul */
-}
-
-.btn-convert {
-    background-color: #9e9e9e; /* Gris similar al botón de Borrar */
-    opacity: 0.8; /* Se ve un poco menos prominente que el principal */
+    transition: all 0.3s ease;
+    border: none;
+    flex: 1;
+    text-transform: uppercase;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Añadir sombra a todos para definición */
 }
 
 .btn:disabled {
-    opacity: 0.5;
     cursor: not-allowed;
+    opacity: 0.5;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* 1. Botón Borrar (Aumentado Contraste) */
+.btn-clear-upload {
+    background-color: var(--clear-btn-bg); 
+    color: black; 
+}
+
+.btn-clear-upload:not(:disabled):hover {
+    background-color: #6e7f88; /* Tono de hover más oscuro */
+}
+
+/* 2. Botón Transcripción (Principal) */
+.btn-transcribe-upload {
+    background-color: var(--action-color);
+    color: black;
+    box-shadow: 0 4px 10px rgba(46, 204, 113, 0.4);
+}
+.btn-transcribe-upload:hover {
+    box-shadow: 0 6px 15px rgba(46, 204, 113, 0.6);
+    background-color: #7ef28d;
+}
+
+.btn-transcribe-upload:not(:disabled):hover {
+    transform: translateY(-2px);
+    background-color: #7ef28d;
+}
+
+/* 3. Botón Convertir (Secundario) */
+.btn-convert-upload {
+    background-color: var(--warning-color);
+    color: black;
+}
+
+.btn-convert-upload:not(:disabled):hover {
+    background-color: #e67e22;
+}
+
+@media (max-width: 1024px) {
+    .converter-container {
+        flex-direction: column; 
+        margin: 20px;
+        gap: 30px;
+    }
+
+    .left-panel-upload, .right-panel-upload {
+        min-width: unset;
+        width: 100%;
+    }
+    
+    .controls {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .btn {
+        width: 100%;
+    }
 }

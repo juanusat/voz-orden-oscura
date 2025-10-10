@@ -7,6 +7,8 @@ import HomePage from './Components/HomePage.jsx';
 import UploadPage from './Components/upload.jsx';
 import ListPage from './Components/list.jsx';
 
+import './App.css';
+
 function App() {
   return (
     <BrowserRouter> 

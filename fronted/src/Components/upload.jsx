@@ -109,7 +109,7 @@ const UploadPage = () => {
 
     return (
         <div className="converter-container">
-            <div className="left-panel">
+            <div className="left-panel-upload">
                 <h1 className="title-text">Transforma un archivo de audio a un archivo de texto...</h1>
                 <p className="instruction-text">
                     Seleccione el archivo y haga clic en el botón "Realizar transcripción" para realizar la transformación.
@@ -134,7 +134,7 @@ const UploadPage = () => {
                     
                     <div className="file-selector-row">
                         <button 
-                            className="btn-select-file" 
+                            className="bton-select-file" 
                             onClick={() => fileInputRef.current.click()}
                         >
                             Elegir desde el ordenador
@@ -146,14 +146,14 @@ const UploadPage = () => {
 
                 <div className="controls">
                     <button 
-                        className="btn btn-clear" 
+                        className="bton btn-clear-upload" 
                         onClick={handleClear}
                     >
                         Borrar
                     </button>
                     
                     <button 
-                        className="btn btn-transcribe" 
+                        className="bton btn-transcribe-upload" 
                         onClick={handleRealizarTranscripcion}
                         disabled={!selectedFile} // Deshabilitado si no hay archivo
                     >
@@ -161,7 +161,7 @@ const UploadPage = () => {
                     </button>
                     
                     <button 
-                        className="btn btn-convert" 
+                        className="bton btn-convert-upload" 
                         onClick={handleConvertVideo}
                     >
                         Convertir video a MP3
@@ -169,9 +169,9 @@ const UploadPage = () => {
                 </div>
             </div>
 
-            <div className="right-panel">
+            <div className="right-panel-upload">
                 <h3 className="result-title">Resultado:</h3>
-                <div className="result-box">
+                <div className="result-box-upload">
                     {transcript}
                 </div>
             </div>
