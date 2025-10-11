@@ -211,6 +211,110 @@ class VoskEngine(TranscriptionEngine):
         return speaker_labels
 
 
+class PyannoteWhisperEngine(TranscriptionEngine):
+    def __init__(self):
+        try:
+            from faster_whisper import WhisperModel
+            from pyannote.audio import Pipeline
+            import torch
+            import torchaudio
+            import os
+            self.WhisperModel = WhisperModel
+            self.Pipeline = Pipeline
+            self.torch = torch
+            self.torchaudio = torchaudio
+            self.os = os
+        except ImportError as e:
+            raise RuntimeError(f"PyannoteWhisper dependencies not available: {e}")
+    
+    def transcribe(self, audio_path, **kwargs):
+        model_name = current_app.config.get("WHISPER_MODEL", "small")
+        device = current_app.config.get("WHISPER_DEVICE", "cpu")
+        language = kwargs.get("language")
+        hf_token = current_app.config.get("HUGGINGFACE_API_KEY")
+        pyannote_model = current_app.config.get("PYANNOTE_MODEL", "pyannote/speaker-diarization-3.1")
+        
+        if not hf_token:
+            raise RuntimeError("HUGGINGFACE_API_KEY required for PyannoteWhisper engine")
+        
+        self.os.environ["HF_TOKEN"] = hf_token
+        
+        try:
+            whisper_model = self.WhisperModel(model_name, device=device)
+        except Exception as e:
+            raise RuntimeError(f"Error loading Whisper model: {e}")
+        
+        try:
+            diarization_pipeline = self.Pipeline.from_pretrained(
+                pyannote_model,
+                use_auth_token=hf_token
+            )
+            if device != "cpu":
+                diarization_pipeline = diarization_pipeline.to(self.torch.device(device))
+        except Exception as e:
+            raise RuntimeError(f"Error loading Pyannote model: {e}")
+        
+        try:
+            segments, info = whisper_model.transcribe(audio_path, language=language)
+            whisper_segments = list(segments)
+        except Exception as e:
+            raise RuntimeError(f"Error transcribing with Whisper: {e}")
+        
+        try:
+            diarization = diarization_pipeline(audio_path)
+        except Exception as e:
+            raise RuntimeError(f"Error with speaker diarization: {e}")
+        
+        speaker_segments = []
+        for turn, _, speaker in diarization.itertracks(yield_label=True):
+            speaker_segments.append({
+                "start": turn.start,
+                "end": turn.end,
+                "speaker": speaker
+            })
+        
+        result_segments = []
+        full_text = []
+        
+        for whisper_seg in whisper_segments:
+            seg_start = whisper_seg.start
+            seg_end = whisper_seg.end
+            seg_text = whisper_seg.text
+            
+            assigned_speaker = "speaker_0"
+            max_overlap = 0
+            
+            for spk_seg in speaker_segments:
+                overlap_start = max(seg_start, spk_seg["start"])
+                overlap_end = min(seg_end, spk_seg["end"])
+                overlap_duration = max(0, overlap_end - overlap_start)
+                
+                if overlap_duration > max_overlap:
+                    max_overlap = overlap_duration
+                    assigned_speaker = spk_seg["speaker"]
+            
+            result_segments.append({
+                "start": seg_start,
+                "end": seg_end,
+                "text": seg_text,
+                "speaker": assigned_speaker
+            })
+            full_text.append(seg_text)
+        
+        duration = None
+        try:
+            duration = float(info.duration)
+        except Exception:
+            if result_segments:
+                duration = max(seg["end"] for seg in result_segments)
+        
+        return {
+            "text": " ".join(full_text),
+            "segments": result_segments,
+            "duration": duration
+        }
+
+
 def get_transcription_engine():
     engine_name = current_app.config.get("TRANSCRIPTION_ENGINE", "vosk").lower()
     
@@ -218,5 +322,7 @@ def get_transcription_engine():
         return WhisperEngine()
     elif engine_name == "vosk":
         return VoskEngine()
+    elif engine_name == "pyannote-whisper":
+        return PyannoteWhisperEngine()
     else:
         raise ValueError(f"Unknown transcription engine: {engine_name}")

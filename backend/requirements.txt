@@ -29,6 +29,7 @@ numpy==2.3.3
 onnxruntime==1.23.0
 packaging==25.0
 protobuf==6.32.1
+pyannote.audio==3.1.1
 pyreadline3==3.5.4
 python-docx==1.2.0
 python-magic==0.4.27
@@ -39,6 +40,8 @@ setuptools==80.9.0
 SQLAlchemy==2.0.43
 sympy==1.14.0
 tokenizers==0.22.1
+torch==2.1.2
+torchaudio==2.1.2
 tqdm==4.67.1
 typing_extensions==4.15.0
 urllib3==2.5.0

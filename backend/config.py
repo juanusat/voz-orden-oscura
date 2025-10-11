@@ -14,4 +14,8 @@ class Config:
     WHISPER_DEVICE = os.environ.get("WHISPER_DEVICE", "cpu")
     
     VOSK_MODEL_PATH = os.environ.get("VOSK_MODEL_PATH", "vosk-model-small-es-0.42")
-    VOSK_SPEAKER_MODEL_PATH = os.environ.get("VOSK_SPEAKER_MODEL_PATH", "vosk-model-spk-0.4")
+    VOSK_SPEAKER_MODEL_PATH = os.environ.get("VOSK_SPEAKER_MODEL_PATH", "vosk-model-spk-0.2")
+    
+    HUGGINGFACE_API_KEY = os.environ.get("HUGGINGFACE_API_KEY")
+    PYANNOTE_MODEL = os.environ.get("PYANNOTE_MODEL", "pyannote/speaker-diarization-3.1")
+    PYANNOTE_ACCESS_TOKEN = os.environ.get("HUGGINGFACE_API_KEY")
