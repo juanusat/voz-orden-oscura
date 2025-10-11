@@ -29,14 +29,19 @@ def request_transcription(upload_id):
 def summarize_segments(segments):
     # segments: [{start,end,text,speaker?}]
     by_speaker = {}
+    speaker_texts = {}
     total_dur = 0.0
     for seg in (segments or []):
         speaker = seg.get('speaker') or seg.get('speaker_id') or 'unknown'
+        text = seg.get('text', '').strip()
         dur = (seg.get('end') or 0) - (seg.get('start') or 0)
         total_dur += max(0.0, dur)
         by_speaker.setdefault(speaker, 0.0)
         by_speaker[speaker] += max(0.0, dur)
-    return total_dur, by_speaker
+        speaker_texts.setdefault(speaker, [])
+        if text:
+            speaker_texts[speaker].append(text)
+    return total_dur, by_speaker, speaker_texts
 
 
 def main():
@@ -61,12 +66,16 @@ def main():
             result, elapsed = request_transcription(upload_id)
             text = result.get('text')
             segments = result.get('segments')
-            duration, by_speaker = summarize_segments(segments)
+            duration, by_speaker, speaker_texts = summarize_segments(segments)
             print(f' Transcription status: {result.get("status")}, elapsed: {elapsed:.2f}s, audio_duration(seg sum): {duration:.2f}s')
-            print(' Speakers:')
-            for spk, sec in by_speaker.items():
-                print(f'  - {spk}: {sec:.2f}s')
-            print(' Text preview:', (text or '')[:200])
+            print(' Speakers and their text:')
+            for spk in sorted(by_speaker.keys()):
+                sec = by_speaker[spk]
+                texts = speaker_texts.get(spk, [])
+                combined_text = ' '.join(texts)
+                # print(f'  - {spk} ({sec:.2f}s): {combined_text[:150]}{"..." if len(combined_text) > 150 else ""}')
+                print(f'  - {spk} ({sec:.2f}s): {combined_text}')
+            print(' Full text preview:', (text or '')[:200])
         except Exception as e:
             print(' Transcription failed:', e)
 
