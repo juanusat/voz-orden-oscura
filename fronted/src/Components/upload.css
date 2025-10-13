@@ -54,10 +54,18 @@
     border: 1px solid black;
     border-radius: 10px;
     background-color: var(--bg-light);
-    white-space: pre-wrap;
     overflow-y: auto;
     font-size: 1.05rem;
-    line-height: 1.7;
+    line-height: 1.8;
+}
+
+.transcript-line {
+    margin-bottom: 8px;
+    padding: 4px 0;
+}
+
+.transcript-line:empty {
+    display: none;
 }
 
 .drag-drop-area {
@@ -178,6 +186,94 @@
     background-color: #e67e22;
 }
 
+.speaker-segments-section {
+    background-color: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    border: 2px solid #e9ecef;
+    margin: 10px 0;
+}
+
+.speaker-segments-section h3 {
+    margin: 0 0 15px 0;
+    color: var(--secondary-color);
+    font-size: 1.1rem;
+}
+
+.segment-input-form {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.segment-input-form select,
+.segment-input-form input {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.segment-input-form select {
+    min-width: 100px;
+}
+
+.segment-input-form input {
+    width: 100px;
+}
+
+.btn-add-segment {
+    background-color: #3498db;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.btn-add-segment:hover {
+    background-color: #2980b9;
+}
+
+.segments-list {
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.segment-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 5px;
+}
+
+.segment-item span {
+    font-size: 0.9rem;
+    color: #333;
+}
+
+.btn-remove-segment {
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+
+.btn-remove-segment:hover {
+    background-color: #c0392b;
+}
+
 @media (max-width: 1024px) {
     .converter-container {
         flex-direction: column; 
@@ -197,5 +293,17 @@
 
     .btn {
         width: 100%;
+    }
+
+    .segment-input-form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .segment-input-form select,
+    .segment-input-form input,
+    .btn-add-segment {
+        width: 100%;
+        margin-bottom: 5px;
     }
 }

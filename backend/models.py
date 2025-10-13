@@ -28,6 +28,7 @@ class Transcription(db.Model):
     text = Column(Text)
     segments = Column(JSON)
     speakers = Column(JSON)
+    speaker_segments = Column(JSON)
     status = Column(String(32), nullable=False, default="queued")
     error = Column(Text)
     transcriber = Column(Text)

@@ -52,10 +52,18 @@
     padding: 15px;
     border: 1px solid black;
     border-radius: 8px;
-    white-space: pre-wrap;
     overflow-y: auto;
     font-size: 1.05rem;
-    line-height: 1.6;
+    line-height: 1.8;
+}
+
+.transcript-line {
+    margin-bottom: 8px;
+    padding: 4px 0;
+}
+
+.transcript-line:empty {
+    display: none;
 }
 
 .timer-box {
@@ -132,6 +140,76 @@
     }
     100% {
         box-shadow: 0 0 0 0 rgba(231, 76, 60, 0);
+    }
+}
+
+.speaker-controls {
+    background-color: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    border: 2px solid #e9ecef;
+    margin: 10px 0;
+}
+
+.speaker-controls h3 {
+    margin: 0 0 15px 0;
+    color: var(--secondary-color);
+    font-size: 1.1rem;
+    text-align: center;
+}
+
+.speaker-buttons {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.speaker-btn {
+    padding: 10px 15px;
+    border: 2px solid #3498db;
+    background-color: white;
+    color: #3498db;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.speaker-btn:hover {
+    background-color: #3498db;
+    color: white;
+    transform: translateY(-1px);
+}
+
+.speaker-btn.active {
+    background-color: #27ae60;
+    border-color: #27ae60;
+    color: white;
+    box-shadow: 0 0 10px rgba(39, 174, 96, 0.4);
+    animation: speakerPulse 2s infinite;
+}
+
+.current-speaker-info {
+    text-align: center;
+    font-weight: 600;
+    color: #27ae60;
+    font-size: 1rem;
+    padding: 8px;
+    background-color: rgba(39, 174, 96, 0.1);
+    border-radius: 4px;
+}
+
+@keyframes speakerPulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(39, 174, 96, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 8px rgba(39, 174, 96, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(39, 174, 96, 0);
     }
 }
 

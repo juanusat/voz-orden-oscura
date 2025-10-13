@@ -19,35 +19,72 @@ class WhisperEngine(TranscriptionEngine):
     def transcribe(self, audio_path, **kwargs):
         if self.WhisperModel is None:
             raise RuntimeError("faster-whisper not available")
-        model_name = current_app.config.get("WHISPER_MODEL", "small")
+        model_name = current_app.config.get("WHISPER_MODEL", "large-v3")
         device = current_app.config.get("WHISPER_DEVICE", "cpu")
-        language = kwargs.get("language")
+        language = kwargs.get("language", "es")
         
-        model = self.WhisperModel(model_name, device=device)
-        segments, info = model.transcribe(audio_path, language=language)
-        
-        result_segments = []
-        full_text = []
-        for seg in segments:
-            result_segments.append({
-                "start": seg.start,
-                "end": seg.end,
-                "text": seg.text,
-                "speaker": "speaker_0"
-            })
-            full_text.append(seg.text)
-        
-        duration = None
         try:
-            duration = float(info.duration)
-        except Exception:
-            pass
-        
-        return {
-            "text": " ".join(full_text),
-            "segments": result_segments,
-            "duration": duration
-        }
+            compute_type = current_app.config.get("WHISPER_COMPUTE_TYPE", "float32")
+            beam_size = current_app.config.get("WHISPER_BEAM_SIZE", 5)
+            best_of = current_app.config.get("WHISPER_BEST_OF", 5)
+            temperature = current_app.config.get("WHISPER_TEMPERATURE", 0.0)
+            
+            model = self.WhisperModel(
+                model_name, 
+                device=device,
+                compute_type=compute_type,
+                cpu_threads=4 if device == "cpu" else 0
+            )
+            segments, info = model.transcribe(
+                audio_path, 
+                language=language,
+                word_timestamps=True,
+                vad_filter=True,
+                vad_parameters=dict(
+                    min_silence_duration_ms=300,
+                    threshold=0.5,
+                    min_speech_duration_ms=250
+                ),
+                beam_size=beam_size,
+                best_of=best_of,
+                temperature=temperature,
+                condition_on_previous_text=True,
+                compression_ratio_threshold=2.4,
+                log_prob_threshold=-1.0,
+                no_speech_threshold=0.6,
+                repetition_penalty=1.0,
+                length_penalty=1.0
+            )
+            
+            result_segments = []
+            full_text = []
+            
+            for seg in segments:
+                text = seg.text.strip()
+                if text:
+                    result_segments.append({
+                        "start": round(seg.start, 2),
+                        "end": round(seg.end, 2),
+                        "text": text,
+                        "speaker": kwargs.get("speaker", "speaker_0")
+                    })
+                    full_text.append(text)
+            
+            duration = None
+            try:
+                duration = float(info.duration)
+            except Exception:
+                if result_segments:
+                    duration = max(seg["end"] for seg in result_segments)
+            
+            return {
+                "text": " ".join(full_text),
+                "segments": result_segments,
+                "duration": duration
+            }
+            
+        except Exception as e:
+            raise RuntimeError(f"Error transcribing with Whisper: {e}")
 
 
 class VoskEngine(TranscriptionEngine):

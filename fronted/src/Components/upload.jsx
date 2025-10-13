@@ -10,6 +10,7 @@ const UploadPage = () => {
     const [isVideo, setIsVideo] = useState(false);
     const [detectedMime, setDetectedMime] = useState(null);
     const [transcript, setTranscript] = useState('En esta sección se mostrará el texto transcrito.');
+    const [speakerSegments, setSpeakerSegments] = useState([]);
     const fileInputRef = useRef(null); // Referencia para el input de archivo oculto
 
     // --- Manejo de Archivo Seleccionado ---
@@ -77,7 +78,10 @@ const UploadPage = () => {
             const tRes = await fetch(`${API_BASE}/transcriptions`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ upload_id: uploadId }),
+                body: JSON.stringify({ 
+                    upload_id: uploadId,
+                    speaker_segments: speakerSegments 
+                }),
             });
             if (!tRes.ok) {
                 const err = await tRes.json().catch(()=> null);
@@ -91,10 +95,23 @@ const UploadPage = () => {
         }
     };
 
+    const addSpeakerSegment = (speakerId, startTime, endTime) => {
+        setSpeakerSegments(prev => [...prev, {
+            speaker_id: speakerId,
+            start_time: parseFloat(startTime),
+            end_time: parseFloat(endTime)
+        }]);
+    };
+
+    const removeSpeakerSegment = (index) => {
+        setSpeakerSegments(prev => prev.filter((_, i) => i !== index));
+    };
+
     const handleClear = () => {
         setSelectedFile(null);
         setFileName('Ningún archivo seleccionado');
         setTranscript('En esta sección se mostrará el texto transcrito.');
+        setSpeakerSegments([]);
         // Limpiar el input de archivo si es necesario
         if (fileInputRef.current) {
             fileInputRef.current.value = null;
@@ -144,6 +161,51 @@ const UploadPage = () => {
                     </div>
                 </div>
 
+                <div className="speaker-segments-section">
+                    <h3>Segmentos de Ponentes (Opcional)</h3>
+                    <div className="segment-input-form">
+                        <select id="speakerSelect">
+                            <option value="speaker_1">Ponente 1</option>
+                            <option value="speaker_2">Ponente 2</option>
+                            <option value="speaker_3">Ponente 3</option>
+                            <option value="speaker_4">Ponente 4</option>
+                            <option value="speaker_5">Ponente 5</option>
+                        </select>
+                        <input type="number" id="startTime" placeholder="Inicio (seg)" step="0.1" min="0" />
+                        <input type="number" id="endTime" placeholder="Final (seg)" step="0.1" min="0" />
+                        <button 
+                            type="button" 
+                            className="bton btn-add-segment"
+                            onClick={() => {
+                                const speaker = document.getElementById('speakerSelect').value;
+                                const start = document.getElementById('startTime').value;
+                                const end = document.getElementById('endTime').value;
+                                if (speaker && start && end && parseFloat(start) < parseFloat(end)) {
+                                    addSpeakerSegment(speaker, start, end);
+                                    document.getElementById('startTime').value = '';
+                                    document.getElementById('endTime').value = '';
+                                }
+                            }}
+                        >
+                            Agregar
+                        </button>
+                    </div>
+                    
+                    <div className="segments-list">
+                        {speakerSegments.map((segment, index) => (
+                            <div key={index} className="segment-item">
+                                <span>{segment.speaker_id.replace('speaker_', 'Ponente ')}: {segment.start_time}s - {segment.end_time}s</span>
+                                <button 
+                                    className="bton btn-remove-segment"
+                                    onClick={() => removeSpeakerSegment(index)}
+                                >
+                                    Eliminar
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
                 <div className="controls">
                     <button 
                         className="bton btn-clear-upload" 
@@ -172,7 +234,11 @@ const UploadPage = () => {
             <div className="right-panel-upload">
                 <h3 className="result-title">Resultado:</h3>
                 <div className="result-box-upload">
-                    {transcript}
+                    {transcript.split('\n').map((line, index) => (
+                        <div key={index} className="transcript-line">
+                            {line}
+                        </div>
+                    ))}
                 </div>
             </div>
         </div>

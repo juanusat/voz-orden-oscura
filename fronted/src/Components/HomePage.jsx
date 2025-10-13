@@ -10,6 +10,11 @@ const HomePage = () => {
     const [isTranscribing, setIsTranscribing] = useState(false);
     const [savedTranscriptionId, setSavedTranscriptionId] = useState(null);
     const [timer, setTimer] = useState(0); // Para el cronómetro (segundos)
+    const [speakerSegments, setSpeakerSegments] = useState([]);
+    const [currentSpeaker, setCurrentSpeaker] = useState(null);
+    const speakerSegmentsRef = useRef([]);
+    const currentSpeakerRef = useRef(null);
+    const timerRef = useRef(0);
 
     // Función para formatear el tiempo (MM:SS)
     const formatTime = (seconds) => {
@@ -23,7 +28,11 @@ const HomePage = () => {
         let interval = null;
         if (isRecording) {
             interval = setInterval(() => {
-                setTimer(prevTime => prevTime + 1);
+                setTimer(prevTime => {
+                    const newTime = prevTime + 1;
+                    timerRef.current = newTime;
+                    return newTime;
+                });
             }, 1000);
         } else {
             clearInterval(interval);
@@ -32,6 +41,14 @@ const HomePage = () => {
         // Limpieza al desmontar o detener la grabación
         return () => clearInterval(interval);
     }, [isRecording]);
+
+    useEffect(() => {
+        speakerSegmentsRef.current = speakerSegments;
+    }, [speakerSegments]);
+
+    useEffect(() => {
+        currentSpeakerRef.current = currentSpeaker;
+    }, [currentSpeaker]);
 
 
     // --- Funciones de Botones ---
@@ -42,7 +59,7 @@ const HomePage = () => {
 
     const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5702/api';
 
-    const uploadAndTranscribe = async (blob, filename) => {
+    const uploadAndTranscribe = async (blob, filename, segments = speakerSegments) => {
         try {
             const form = new FormData();
             form.append('file', blob, filename);
@@ -50,11 +67,17 @@ const HomePage = () => {
             if (!upRes.ok) throw new Error(`Upload failed: ${upRes.status}`);
             const upJson = await upRes.json();
             const uploadId = upJson.id;
+            
+            console.log('Sending transcription request with segments:', segments);
+            
             // Request transcription (try synchronous endpoint first)
             const tRes = await fetch(`${API_BASE}/transcriptions`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ upload_id: uploadId }),
+                body: JSON.stringify({ 
+                    upload_id: uploadId,
+                    speaker_segments: segments 
+                }),
             });
             if (!tRes.ok) {
                 const err = await tRes.json().catch(()=>null);
@@ -66,10 +89,8 @@ const HomePage = () => {
             const transcriptionId = tJson.id || tJson.task_id || null;
             if (tJson.status === 'completed' && tJson.text) {
                 setTranscript(tJson.text);
-                // keep user on HomePage; record exists in backend and will appear in Listado
                 setSavedTranscriptionId(tJson.id || null);
                 setIsTranscribing(false);
-                setSavedTranscriptionId(tJson.id || null);
                 return;
             }
 
@@ -95,7 +116,6 @@ const HomePage = () => {
                     } catch (e) {
                         console.warn('Polling error', e);
                     }
-                    // wait 2s
                     await new Promise(res => setTimeout(res, 2000));
                 }
                 throw new Error('Transcription timeout');
@@ -128,6 +148,8 @@ const HomePage = () => {
         try {
             setTranscript('');
             setTimer(0);
+            setSpeakerSegments([]);
+            setCurrentSpeaker(null);
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             mediaStreamRef.current = stream;
             const options = {};
@@ -137,6 +159,17 @@ const HomePage = () => {
                 if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
             };
             mediaRecorder.onstop = async () => {
+                let finalSegments = [...speakerSegmentsRef.current];
+                
+                if (currentSpeakerRef.current !== null && finalSegments.length > 0) {
+                    const lastSegment = finalSegments[finalSegments.length - 1];
+                    if (lastSegment && lastSegment.speaker_id === currentSpeakerRef.current && !lastSegment.end_time) {
+                        lastSegment.end_time = timerRef.current;
+                    }
+                }
+                
+                console.log('Final speaker segments to send:', finalSegments);
+                
                 // assemble blob
                 const blob = new Blob(chunksRef.current, { type: chunksRef.current[0]?.type || 'audio/webm' });
                 const now = new Date();
@@ -145,7 +178,7 @@ const HomePage = () => {
                 // stop tracks
                 try { mediaStreamRef.current && mediaStreamRef.current.getTracks().forEach(t=>t.stop()); } catch(e){}
                 setIsTranscribing(true);
-                await uploadAndTranscribe(blob, fname);
+                await uploadAndTranscribe(blob, fname, finalSegments);
             };
             mediaRecorder.start();
             mediaRecorderRef.current = mediaRecorder;
@@ -156,11 +189,37 @@ const HomePage = () => {
         }
     };
 
+    const handleSpeakerChange = (speakerId) => {
+        if (!isRecording) return;
+        
+        const currentTime = timer;
+        if (currentSpeaker !== null) {
+            setSpeakerSegments(prev => {
+                const updated = [...prev];
+                const lastSegment = updated[updated.length - 1];
+                if (lastSegment && lastSegment.speaker_id === currentSpeaker && !lastSegment.end_time) {
+                    lastSegment.end_time = currentTime;
+                }
+                return updated;
+            });
+        }
+        
+        if (speakerId !== currentSpeaker) {
+            setSpeakerSegments(prev => [...prev, {
+                speaker_id: speakerId,
+                start_time: currentTime,
+                end_time: null
+            }]);
+            setCurrentSpeaker(speakerId);
+        }
+    };
+
     const handleClear = () => {
         setTranscript('En esta sección se mostrará el texto transcrito.');
         setTimer(0);
         setIsRecording(false);
-        // TODO: Lógica para detener cualquier reconocimiento activo si lo hay
+        setSpeakerSegments([]);
+        setCurrentSpeaker(null);
     };
 
     return (
@@ -176,6 +235,28 @@ const HomePage = () => {
                     Tiempo de grabación
                     <div className="timer-display">{formatTime(timer)}</div>
                 </div>
+
+                {isRecording && (
+                    <div className="speaker-controls">
+                        <h3>Seleccionar ponente activo:</h3>
+                        <div className="speaker-buttons">
+                            {[1, 2, 3, 4, 5].map(speakerId => (
+                                <button
+                                    key={speakerId}
+                                    className={`speaker-btn ${currentSpeaker === `speaker_${speakerId}` ? 'active' : ''}`}
+                                    onClick={() => handleSpeakerChange(`speaker_${speakerId}`)}
+                                >
+                                    Ponente {speakerId}
+                                </button>
+                            ))}
+                        </div>
+                        {currentSpeaker && (
+                            <div className="current-speaker-info">
+                                Hablando: {currentSpeaker.replace('speaker_', 'Ponente ')}
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 <div className="controls">
                     <button 
@@ -199,7 +280,11 @@ const HomePage = () => {
                 <h3 className="result-title">Resultado:</h3>
                 <div className="result-box-home">
                     {isTranscribing ? (<div><strong>Transcribiendo...</strong></div>) : null}
-                    {transcript}
+                    {transcript.split('\n').map((line, index) => (
+                        <div key={index} className="transcript-line">
+                            {line}
+                        </div>
+                    ))}
                 </div>
             </div>
         </div>

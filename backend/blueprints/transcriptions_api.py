@@ -25,32 +25,34 @@ def get_transcription(tid):
     t = Transcription.query.get(tid)
     if not t:
         return jsonify({"error":"not found"}), 404
-    return jsonify({"id":t.id,"filename":t.filename,"status":t.status,"text":t.text,"duration_seconds":t.duration_seconds,"segments":t.segments,"speakers":t.speakers,"created_at":t.created_at.isoformat() if t.created_at else None})
+    return jsonify({"id":t.id,"filename":t.filename,"status":t.status,"text":t.text,"duration_seconds":t.duration_seconds,"segments":t.segments,"speakers":t.speakers,"speaker_segments":t.speaker_segments,"created_at":t.created_at.isoformat() if t.created_at else None})
 
 @transcriptions_bp.route("", methods=["POST"])
 def create_transcription_sync():
     data = request.get_json() or {}
     upload_id = data.get("upload_id") or request.form.get("upload_id")
+    speaker_segments = data.get("speaker_segments", [])
     if not upload_id:
         return jsonify({"error":"upload_id required"}),400
     upload = Upload.query.get(upload_id)
     if not upload:
         return jsonify({"error":"upload not found"}),404
     audio_path = ensure_audio(upload.stored_at, current_app.config["UPLOAD_FOLDER"])
-    t = Transcription(upload_id=upload.id, filename=upload.filename, content_type=upload.content_type, audio_path=audio_path, status="processing")
+    t = Transcription(upload_id=upload.id, filename=upload.filename, content_type=upload.content_type, audio_path=audio_path, speaker_segments=speaker_segments, status="processing")
     db.session.add(t)
     db.session.commit()
     try:
-        res = transcribe_audio(audio_path)
+        res = transcribe_audio(audio_path, speaker_segments=speaker_segments)
         t.text = res.get("text")
         t.segments = res.get("segments")
         t.duration_seconds = res.get("duration")
+        t.speakers = res.get("speakers")
         t.status = "completed"
     except Exception as e:
         t.status = "failed"
         t.error = str(e)
     db.session.commit()
-    return jsonify({"id":t.id,"status":t.status,"text":t.text,"segments":t.segments})
+    return jsonify({"id":t.id,"status":t.status,"text":t.text,"segments":t.segments,"speakers":t.speakers})
 
 @transcriptions_bp.route("/async", methods=["POST"])
 def create_transcription_async():
